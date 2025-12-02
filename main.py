@@ -23,22 +23,20 @@ NANOBANANA_API_KEY = os.getenv("NANOBANANA_API_KEY")
 MAGNIFIC_API_KEY = os.getenv("MAGNIFIC_API_KEY")
 MAGNIFIC_ENDPOINT = os.getenv("MAGNIFIC_ENDPOINT", "https://api.freepik.com/v1/ai/image-upscaler")
 
-# [모델 설정]
-MODEL_NAME = 'gemini-3-pro-image-preview'
-
-# ... (import 부분 생략) ...
+# [모델 설정] 
+MODEL_NAME = 'gemini-3-pro-image-preview' 
 
 if NANOBANANA_API_KEY:
     genai.configure(api_key=NANOBANANA_API_KEY)
 
-# [수정됨] 폴더를 먼저 만들어야 에러가 안 납니다! (위치 이동)
+# [필수] 폴더 생성 (순서 중요)
 os.makedirs("outputs", exist_ok=True)
 os.makedirs("assets", exist_ok=True)
-os.makedirs("static", exist_ok=True) # 혹시 모르니 static도 추가
+os.makedirs("static", exist_ok=True)
 
 app = FastAPI()
 
-# [수정됨] 폴더가 이미 만들어진 상태에서 연결(mount)
+# [필수] 정적 파일 연결
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 app.mount("/assets", StaticFiles(directory="assets"), name="assets")
@@ -50,9 +48,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-os.makedirs("outputs", exist_ok=True)
-os.makedirs("assets", exist_ok=True)
 
 TOTAL_TIMEOUT_LIMIT = 180
 
@@ -91,7 +86,8 @@ def standardize_image(image_path, output_path=None):
         print(f"!! 표준화 실패: {e}", flush=True)
         return image_path
 
-def generate_empty_room(image_path, start_time):
+# [수정됨] unique_id를 인자로 받아서 파일명에 사용
+def generate_empty_room(image_path, unique_id, start_time):
     if time.time() - start_time > TOTAL_TIMEOUT_LIMIT: return image_path
     print(f"\n--- [Stage 1] 빈 방 생성 시작 ({MODEL_NAME}) ---", flush=True)
     try:
@@ -99,13 +95,11 @@ def generate_empty_room(image_path, start_time):
         prompt = (
             "IMAGE EDITING TASK (STRICT):\n"
             "Create a photorealistic image of this room but completely EMPTY.\n\n"
-            
             "ACTIONS:\n"
             "1. REMOVE ALL furniture, rugs, decor, and lighting.\n"
             "2. REMOVE ALL window treatments (curtains, blinds, shades). Show bare windows/glass.\n"
             "3. KEEP the original floor material, wall color, ceiling structure, and windows EXACTLY as they are.\n"
             "4. IN-PAINT the removed areas seamlessly.\n\n"
-            
             "OUTPUT RULE: Return ONLY the generated image. Do NOT output any text."
         )
         model = genai.GenerativeModel(MODEL_NAME)
@@ -128,8 +122,8 @@ def generate_empty_room(image_path, start_time):
             for part in response.parts:
                 if hasattr(part, 'inline_data') and part.inline_data:
                     print(">> [성공] 빈 방 이미지 생성됨!", flush=True)
-                    unique_id = uuid.uuid4().hex[:8]
                     timestamp = int(time.time())
+                    # [핵심 수정] 파일명에 unique_id 포함 (동시 접속 충돌 방지)
                     filename = f"empty_{timestamp}_{unique_id}.jpg"
                     output_path = os.path.join("outputs", filename)
                     with open(output_path, 'wb') as f: f.write(part.inline_data.data)
@@ -145,13 +139,13 @@ def generate_empty_room(image_path, start_time):
         print(f"!! Stage 1 시스템 에러: {e}", flush=True)
         return image_path
 
-def generate_furnished_room(room_path, style_config, reference_image_path=None, start_time=0):
+# [수정됨] unique_id 인자 추가
+def generate_furnished_room(room_path, style_config, reference_image_path, unique_id, start_time=0):
     if time.time() - start_time > TOTAL_TIMEOUT_LIMIT: return room_path
     print(f"\n--- [Stage 2] 가구 배치 (Perspective Match 모드) ---", flush=True)
     try:
         room_img = Image.open(room_path)
         
-        # [프롬프트] 텍스트 무시 + 3D 재배치 + 조명 4000K + 커튼
         prompt = (
             "IMAGE GENERATION TASK (Virtual Staging):\n"
             "Furnish the empty room using the furniture styles shown in the Moodboard.\n\n"
@@ -164,13 +158,13 @@ def generate_furnished_room(room_path, style_config, reference_image_path=None, 
             "<LIGHTING INSTRUCTION: TURN ON ALL LIGHTS>\n"
             "1. ACTIVATE LIGHTING: Identify items labeled as 'pendant lighting', 'floor lighting', 'table lighting', or 'wall lighting' in the Moodboard.\n"
             "2. STATE: All identified lighting fixtures MUST be TURNED ON and emitting light.\n"
-            "3. COLOR TEMPERATURE: Use a warm 4000K light color for a cozy atmosphere.\n"
+            "3. COLOR TEMPERATURE: Use a warm 3000K light color for a cozy atmosphere.\n"
             "4. EMISSIVE MATERIAL: The light bulbs/shades must look bright and glowing (Emissive).\n"
             "5. AMBIENT GLOW: Ensure the lights cast a soft, warm glow on the surrounding walls and floor.\n\n"
             
             "<MANDATORY WINDOW TREATMENT>\n"
             "- Install pure WHITE CHIFFON CURTAINS on all windows.\n"
-            "- They must be SHEER (90% transparency), allowing natural light.\n\n"
+            "- They must be SHEER (60-70% transparency), allowing natural light.\n\n"
             
             "<DESIGN INSTRUCTIONS>\n"
             "1. PERSPECTIVE MATCH: Align the furniture with the floor grid and vanishing points of the empty room.\n"
@@ -211,6 +205,7 @@ def generate_furnished_room(room_path, style_config, reference_image_path=None, 
                 if hasattr(part, 'inline_data') and part.inline_data:
                     print(">> [성공] 가구 배치 완료", flush=True)
                     timestamp = int(time.time())
+                    # [핵심 수정] 파일명에 unique_id 포함
                     filename = f"result_{timestamp}_{unique_id}.jpg"
                     output_path = os.path.join("outputs", filename)
                     with open(output_path, 'wb') as f: f.write(part.inline_data.data)
@@ -225,7 +220,8 @@ def generate_furnished_room(room_path, style_config, reference_image_path=None, 
         print(f"!! Stage 2 에러: {e}", flush=True)
         return room_path
 
-def call_magnific_api(image_path, start_time):
+# [수정됨] unique_id 인자 추가
+def call_magnific_api(image_path, unique_id, start_time):
     if time.time() - start_time > TOTAL_TIMEOUT_LIMIT: return image_path
     print("\n--- [Stage 3] 업스케일링 시도 ---", flush=True)
     if not MAGNIFIC_API_KEY or "your_" in MAGNIFIC_API_KEY:
@@ -247,7 +243,7 @@ def call_magnific_api(image_path, start_time):
             return image_path
         result_json = response.json()
         if "data" in result_json and "generated" in result_json["data"] and len(result_json["data"]["generated"]) > 0:
-            return download_image(result_json["data"]["generated"][0])
+            return download_image(result_json["data"]["generated"][0], unique_id)
         elif "data" in result_json and "task_id" in result_json["data"]:
             task_id = result_json["data"]["task_id"]
             print(f">> 작업 예약됨 (Task ID: {task_id}). 대기 중...", end="", flush=True)
@@ -259,7 +255,7 @@ def call_magnific_api(image_path, start_time):
                     s_data = status_res.json()
                     if s_data.get("data", {}).get("status") == "COMPLETED":
                         print("\n>> 작업 완료!", flush=True)
-                        return download_image(s_data["data"]["generated"][0])
+                        return download_image(s_data["data"]["generated"][0], unique_id)
                     elif s_data.get("data", {}).get("status") == "FAILED":
                         print("\n!! [오류] 실패.", flush=True)
                         return image_path
@@ -270,12 +266,13 @@ def call_magnific_api(image_path, start_time):
         print(f"\n!! [시스템 에러] {e}", flush=True)
         return image_path
 
-def download_image(url):
+# [수정됨] unique_id 인자 추가
+def download_image(url, unique_id):
     try:
         img_response = requests.get(url)
         if img_response.status_code == 200:
-            unique_id = uuid.uuid4().hex[:8]
             timestamp = int(time.time())
+            # [핵심 수정] 파일명에 unique_id 포함
             filename = f"magnific_{timestamp}_{unique_id}.jpg"
             path = os.path.join("outputs", filename)
             with open(path, "wb") as f: f.write(img_response.content)
@@ -284,64 +281,64 @@ def download_image(url):
         return None
     except: return None
 
+# ---------------------------------------------------------
+# 4. 메인 엔드포인트
+# ---------------------------------------------------------
 @app.post("/render")
 def render_room(file: UploadFile = File(...), room: str = Form(...), style: str = Form(...), variant: str = Form(...)):
     full_style = f"{room}-{style}-{variant}"
-    print(f"\n=== 요청 시작: {full_style} (Room: {room}, Style: {style}, Variant: {variant}) ===", flush=True)
+    
+    # [핵심] 사용자 고유 ID 생성 (파일명 충돌 방지)
+    unique_id = uuid.uuid4().hex[:8]
+    
+    print(f"\n=== 요청 시작 [{unique_id}]: {full_style} ===", flush=True)
     start_time = time.time()
     
-    unique_id = uuid.uuid4().hex[:8]
     timestamp = int(time.time())
     safe_name = "".join([c for c in file.filename if c.isalnum() or c in "._-"])
+    # 원본 파일명에도 unique_id 적용
     raw_path = os.path.join("outputs", f"raw_{timestamp}_{unique_id}_{safe_name}")
+    
     with open(raw_path, "wb") as buffer: shutil.copyfileobj(file.file, buffer)
     
     std_path = standardize_image(raw_path)
-    step1_img = generate_empty_room(std_path, start_time)
+    
+    # [수정] unique_id 전달
+    step1_img = generate_empty_room(std_path, unique_id, start_time)
     
     # [스마트 에셋 탐색]
     ref_path = None
     safe_room = room.lower().replace(" ", "")
     safe_style = style.lower().replace(" ", "-").replace("_", "-")
     target_dir = os.path.join("assets", safe_room, safe_style)
+    
     print(f">> [Moodboard] 에셋 폴더 탐색: {target_dir}", flush=True)
+    
     if os.path.exists(target_dir):
         files = sorted(os.listdir(target_dir))
         for f in files:
-            if not f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')): continue
+            if not f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
+                continue
             numbers = re.findall(r'\d+', f)
             if variant in numbers:
                 ref_path = os.path.join(target_dir, f)
-                print(f">> [Moodboard] ✅ 파일 찾음 (번호 {variant}): {f}", flush=True)
+                print(f">> [Moodboard] ✅ 파일 찾음: {f}", flush=True)
                 break
+        
         if ref_path is None and len(files) > 0:
             ref_path = os.path.join(target_dir, files[0])
-            print(f">> [Moodboard] ⚠️ 번호 일치 파일 없음. 대체 파일 사용: {files[0]}", flush=True)
+            print(f">> [Moodboard] ⚠️ 번호 일치 파일 없음. 대체 사용: {files[0]}", flush=True)
     else:
-        print(f">> [Moodboard] ❌ 폴더를 찾을 수 없습니다: {target_dir}", flush=True)
-    if ref_path is None: print(">> [Moodboard] ❌ 경고: 에셋 찾기 실패 (AI 임의 생성)", flush=True)
-    
-    step2_img = generate_furnished_room(step1_img, STYLES.get(style, STYLES.get("Modern")), ref_path, start_time)
-    final_img = call_magnific_api(step2_img, start_time)
-    if final_img is None: final_img = step2_img
-    
-    elapsed = time.time() - start_time
-    print(f"=== 총 소요 시간: {elapsed:.1f}초 ===", flush=True)
-    
-    # [핵심 수정] empty_room_url 포함
-    return JSONResponse(content={
-        "original_url": f"/outputs/{os.path.basename(std_path)}",
-        "empty_room_url": f"/outputs/{os.path.basename(step1_img)}", # 여기가 빠져있었음!
-        "result_url": f"/outputs/{os.path.basename(final_img)}",
-        "message": "Complete" if elapsed <= TOTAL_TIMEOUT_LIMIT else "Timeout Partial Result"
-    })
+        print(f">> [Moodboard] ❌ 폴더 없음: {target_dir}", flush=True)
 
-if __name__ == "__main__":
-    import uvicorn
-    try:
-        print("🚀 서버를 시작합니다... (http://localhost:8001)", flush=True)
-        print("💡 안정 모드: 서버가 꺼지지 않도록 자동 새로고침(Reload)을 껐습니다.", flush=True)
-        uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=False)
+    if ref_path is None: 
+        print(">> [Moodboard] ❌ 경고: 에셋 찾기 실패 (AI 임의 생성)", flush=True)
+    
+    # [수정] unique_id 전달
+    step2_img = generate_furnished_room(step1_img, STYLES.get(style, STYLES.get("Modern")), ref_path, unique_id, start_time)
+    final_img = call_magnific_api(step2_img, unique_id, start_time)
+    
+    if final_img is
     except KeyboardInterrupt:
         print("\n⛔ 서버를 종료합니다.")
     except Exception as e:
