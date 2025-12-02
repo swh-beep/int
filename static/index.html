@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Interior Rendering Service</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <img src="/static/logo.png" alt="Company Logo" class="logo">
+
+            <h1>AI Styling Design Test</h1>
+            <p class="subtitle-sub">Based Google Nanobanana with Gemini</p>
+        </header>
+
+        <main>
+            <section class="upload-section" id="upload-area">
+                <div class="drop-zone">
+                    <div class="folder-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M10 4H4C2.9 4 2 4.9 2 6V18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V8C22 6.9 21.1 6 20 6H12L10 4Z"
+                                fill="#007AFF" />
+                        </svg>
+                    </div>
+                    <p>Drag & Drop your room photo here or <strong>Browse</strong></p>
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                </div>
+                <div id="preview-container" class="hidden">
+                    <img id="image-preview" src="" alt="Room Preview">
+                    <button id="remove-image" class="icon-btn">×</button>
+                </div>
+            </section>
+
+            <section class="style-section" id="room-section">
+                <h2>Step 1: Select Room Type</h2>
+                <div class="style-grid" id="room-grid"></div>
+            </section>
+
+            <section class="style-section hidden" id="style-section">
+                <h2>Step 2: Select Style</h2>
+                <div class="style-grid" id="style-grid"></div>
+            </section>
+
+            <section class="style-section hidden" id="variant-section">
+                <h2>Step 3: Select Variant</h2>
+                <div class="style-grid" id="variant-grid"></div>
+            </section>
+
+            <div class="action-area">
+                <button id="render-btn" disabled>Start Rendering</button>
+            </div>
+
+            <section class="result-section hidden" id="result-section">
+                <h2>Result</h2>
+                <div class="comparison-container">
+                    <span class="label label-after">After</span>
+                    <span class="label label-before">Before</span>
+
+                    <div class="image-wrapper after">
+                        <img id="result-after" src="" alt="After">
+                    </div>
+                    <div class="image-wrapper before">
+                        <img id="result-before" src="" alt="Before">
+                    </div>
+                    <input type="range" min="0" max="100" value="50" class="slider" id="compare-slider">
+                </div>
+                <div class="download-area">
+                    <a id="download-link" href="#" download class="secondary-btn">Download Result</a>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+        <p>Rendering your dream room...</p>
+        <p id="timer">0.0s</p>
+    </div>
+    <script src="/static/js/script.js"></script>
+</body>
+
+</html>
