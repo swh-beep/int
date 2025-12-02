@@ -7,7 +7,7 @@ ROOM_STYLES = {
         "Modern",
         "Natural",
         "Oriental",
-        "Scandinavian", # [수정] Scandinavia -> Scandinavian
+        "Scandinavian",
         "Unique"
     ],
     "Dining room": [
@@ -17,7 +17,7 @@ ROOM_STYLES = {
         "Modern",
         "Natural",
         "Oriental",
-        "Scandinavian", # [수정]
+        "Scandinavian",
         "Unique"
     ],
     "Bedroom": [
@@ -27,7 +27,7 @@ ROOM_STYLES = {
         "Modern",
         "Natural",
         "Oriental",
-        "Scandinavian", # [수정]
+        "Scandinavian",
         "Unique"
     ]
 }
@@ -58,7 +58,7 @@ STYLES = {
         "prompt": "",
         "furniture_specs": {}
     },
-    "Scandinavian": { # [수정] 키 값 변경
+    "Scandinavian": {
         "prompt": "",
         "furniture_specs": {}
     },
