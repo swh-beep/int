@@ -26,14 +26,22 @@ MAGNIFIC_ENDPOINT = os.getenv("MAGNIFIC_ENDPOINT", "https://api.freepik.com/v1/a
 # [모델 설정]
 MODEL_NAME = 'gemini-3-pro-image-preview'
 
+# ... (import 부분 생략) ...
+
 if NANOBANANA_API_KEY:
     genai.configure(api_key=NANOBANANA_API_KEY)
 
+# [수정됨] 폴더를 먼저 만들어야 에러가 안 납니다! (위치 이동)
+os.makedirs("outputs", exist_ok=True)
+os.makedirs("assets", exist_ok=True)
+os.makedirs("static", exist_ok=True) # 혹시 모르니 static도 추가
+
 app = FastAPI()
 
+# [수정됨] 폴더가 이미 만들어진 상태에서 연결(mount)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
-app.mount("/assets", StaticFiles(directory="assets"), name="assets") # 에셋 폴더 개방
+app.mount("/assets", StaticFiles(directory="assets"), name="assets")
 
 app.add_middleware(
     CORSMiddleware,
