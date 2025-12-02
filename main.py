@@ -158,13 +158,13 @@ def generate_furnished_room(room_path, style_config, reference_image_path, uniqu
             "<LIGHTING INSTRUCTION: TURN ON ALL LIGHTS>\n"
             "1. ACTIVATE LIGHTING: Identify items labeled as 'pendant lighting', 'floor lighting', 'table lighting', or 'wall lighting' in the Moodboard.\n"
             "2. STATE: All identified lighting fixtures MUST be TURNED ON and emitting light.\n"
-            "3. COLOR TEMPERATURE: Use a warm 3000K light color for a cozy atmosphere.\n"
+            "3. COLOR TEMPERATURE: Use 4000K light color for a cozy atmosphere.\n"
             "4. EMISSIVE MATERIAL: The light bulbs/shades must look bright and glowing (Emissive).\n"
             "5. AMBIENT GLOW: Ensure the lights cast a soft, warm glow on the surrounding walls and floor.\n\n"
             
             "<MANDATORY WINDOW TREATMENT>\n"
             "- Install pure WHITE CHIFFON CURTAINS on all windows.\n"
-            "- They must be SHEER (60-70% transparency), allowing natural light.\n\n"
+            "- They must be SHEER (80% transparency), allowing natural light.\n\n"
             
             "<DESIGN INSTRUCTIONS>\n"
             "1. PERSPECTIVE MATCH: Align the furniture with the floor grid and vanishing points of the empty room.\n"
