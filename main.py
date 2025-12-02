@@ -338,7 +338,24 @@ def render_room(file: UploadFile = File(...), room: str = Form(...), style: str 
     step2_img = generate_furnished_room(step1_img, STYLES.get(style, STYLES.get("Modern")), ref_path, unique_id, start_time)
     final_img = call_magnific_api(step2_img, unique_id, start_time)
     
-    if final_img is
+    if final_img is None: final_img = step2_img
+    
+    elapsed = time.time() - start_time
+    print(f"=== [{unique_id}] 총 소요 시간: {elapsed:.1f}초 ===", flush=True)
+    
+    return JSONResponse(content={
+        "original_url": f"/outputs/{os.path.basename(std_path)}",
+        "empty_room_url": f"/outputs/{os.path.basename(step1_img)}",
+        "result_url": f"/outputs/{os.path.basename(final_img)}",
+        "message": "Complete" if elapsed <= TOTAL_TIMEOUT_LIMIT else "Timeout Partial Result"
+    })
+
+if __name__ == "__main__":
+    import uvicorn
+    try:
+        print("🚀 서버를 시작합니다... (http://localhost:8001)", flush=True)
+        print("💡 안정 모드: 서버가 꺼지지 않도록 자동 새로고침(Reload)을 껐습니다.", flush=True)
+        uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=False)
     except KeyboardInterrupt:
         print("\n⛔ 서버를 종료합니다.")
     except Exception as e:
