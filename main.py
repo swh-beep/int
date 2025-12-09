@@ -344,8 +344,10 @@ def render_room(file: UploadFile = File(...), room: str = Form(...), style: str 
     print(f"=== [{unique_id}] 총 소요 시간: {elapsed:.1f}초 ===", flush=True)
     
     return JSONResponse(content={
-        "original_url": f"/outputs/{os.path.basename(std_path)}",
-        "empty_room_url": f"/outputs/{os.path.basename(step1_img)}",
+        # Before 이미지를 '빈 방'으로 교체
+        "original_url": f"/outputs/{os.path.basename(step1_img)}", 
+        # 혹시 원본이 필요할 수 있으니 empty_room_url 자리에 원본을 넣어둠 (서로 스위치)
+        "empty_room_url": f"/outputs/{os.path.basename(std_path)}", 
         "result_url": f"/outputs/{os.path.basename(final_img)}",
         "message": "Complete" if elapsed <= TOTAL_TIMEOUT_LIMIT else "Timeout Partial Result"
     })
